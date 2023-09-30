@@ -36,8 +36,8 @@ void app_main(void)
 
     printf("Begin\n");
     
-    xTaskCreate(PrintStuID, "PrintStuID", 2048, NULL, 4, &PrintStuID_Handler);
-    xTaskCreate(BTPolling, "BTPolling", 2048, NULL, 3, &BTPolling_Handler);
+    xTaskCreatePinnedToCore(PrintStuID, "PrintStuID", 2048, NULL, 4, &PrintStuID_Handler, 0);
+    xTaskCreatePinnedToCore(BTPolling, "BTPolling", 2048, NULL, 3, &BTPolling_Handler, 1);
 
 
     while(1){
@@ -78,8 +78,9 @@ void BTPolling(void* param){
     while(1){
         while(gpio_get_level(18) != 0);
         printf("%d.ESP32\n", i++);
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);
 
     }
-
+    
     vTaskDelete(NULL);
 }
