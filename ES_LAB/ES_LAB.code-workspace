@@ -8,7 +8,8 @@
 	"settings": {
 		"files.associations": {
 			"esp_log.h": "c",
-			"sdkconfig.h": "c"
+			"sdkconfig.h": "c",
+			"uart.h": "c"
 		}
 	}
 }

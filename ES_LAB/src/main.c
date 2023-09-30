@@ -9,22 +9,46 @@
 /************************************************
 *               LAB ID DEFINE                   * 
 *************************************************/
-#define     LAB3
+#define     LAB4
+// #define     LAB3
 // #define     LAB2
 // #define     LAB1
 
 /************************************************
-*               VARIABLES DEFINE                * 
+*               DEFINE                          * 
 *************************************************/
-TaskHandle_t PrintStuID_Handler;
-TaskHandle_t BTPolling_Handler;
+#define UART_BUFFER_SIZE                    (2048)
 
 
 /************************************************
-*               FUNCTION DEFINE                 * 
+*               VARIABLES                       * 
 *************************************************/
-void PrintStuID(void* param);
-void BTPolling(void* param);
+QueueHandle_t uartQueueHandler;
+
+
+
+TaskHandle_t SendMsg2Queue_Handler;
+TaskHandle_t RevMsgFromQueue_Handler;
+
+int a, b;
+uint8_t uartLength;
+char uartRxBuff[200];
+
+/************************************************
+*              SUB FUNCTION DEFINE              * 
+*************************************************/
+void UART0_Init(void);
+void UART0_WriteBytes(char* str, uint16_t length);
+uint8_t UART0_ReadBytes(char* buff);
+
+
+/************************************************
+*               TASK DEFINE                     * 
+*************************************************/
+void SendMsg2Queue(void* param);
+void RevMsgFromQueue(void* param);
+
+
 
 
 
@@ -33,54 +57,108 @@ void BTPolling(void* param);
 *************************************************/
 void app_main(void)
 {
+    UART0_Init();
 
-    printf("Begin\n");
+    // printf("Begin\n");
     
-    xTaskCreatePinnedToCore(PrintStuID, "PrintStuID", 2048, NULL, 4, &PrintStuID_Handler, 0);
-    xTaskCreatePinnedToCore(BTPolling, "BTPolling", 2048, NULL, 3, &BTPolling_Handler, 1);
-
+    // xTaskCreatePinnedToCore(PrintStuID, "PrintStuID", 2048, NULL, 4, &PrintStuID_Handler, 0);
+    // xTaskCreatePinnedToCore(BTPolling, "BTPolling", 2048, NULL, 3, &BTPolling_Handler, 1);
 
     while(1){
 
-    }
+        UART0_WriteBytes("asdads", 6);
 
+        uartLength = UART0_ReadBytes(&uartRxBuff[0]);
+        if(uartLength > 0){
+            UART0_WriteBytes(&uartRxBuff[0], uartLength);
+        }
+
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+        // scanf("%s", &msg[0]);
+        // if(msg )
+        // printf("Get:%d, %d", a, b);
+        // msg = getchar();
+        // printf(msg);
+    }
+    
     
     esp_restart();
 }
 
 
+void SendMsg2Queue(void* param){
 
-void PrintStuID(void* param){
-    uint16_t i = 0;
 
     while(1){
-        printf("%d.Nguyen Trung Nghia 2013875\n", i++);
-        // vTaskDelay(1000);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+
+    }
+
+
+    vTaskDelete(NULL);
+}
+
+void RevMsgFromQueue(void* param){
+
+
+
+    while(1){
+
     }
 
     vTaskDelete(NULL);
+}
+
+
+
+
+
+
+
+
+
+void UART0_Init(void){
+    uart_config_t uartConfig = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .rx_flow_ctrl_thresh = 122,
+        .source_clk = UART_SCLK_APB
+    };
+
+    /* Config uart param */
+    ESP_ERROR_CHECK( uart_param_config(UART_NUM_0, &uartConfig) );
+
+    /* Assign PIN */
+    // Set UART pins(TX, RX, RTS, CTS)
+    ESP_ERROR_CHECK( uart_set_pin(UART_NUM_0, 1, 3, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE) ); 
+
+    /* Install uart driver */
+    ESP_ERROR_CHECK( uart_driver_install(UART_NUM_0, UART_BUFFER_SIZE, UART_BUFFER_SIZE, 10,
+                                &uartQueueHandler, 0) );
 
 }
 
-void BTPolling(void* param){
-    uint16_t i = 0;
 
-    gpio_config_t gpioConfig;
-    /* Config BUTTON pin */
-    gpioConfig.pin_bit_mask = (1 << 18);
-    gpioConfig.mode = GPIO_MODE_INPUT;
-    gpioConfig.pull_up_en = GPIO_PULLUP_ENABLE;
-    gpioConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    gpioConfig.intr_type = GPIO_INTR_DISABLE;
-    gpio_config(&gpioConfig);
+void UART0_WriteBytes(char* str, uint16_t length){
+    uart_tx_chars(UART_NUM_0, (const char*)str, length);
+}
 
-    while(1){
-        while(gpio_get_level(18) != 0);
-        printf("%d.ESP32\n", i++);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+uint8_t UART0_ReadBytes(char* buff){
+    uint16_t length;
 
+    ESP_ERROR_CHECK( uart_get_buffered_data_len(UART_NUM_0, (size_t*)&length) );
+
+    if(length == 0){
+        return 0;
     }
-    
-    vTaskDelete(NULL);
+
+    length = uart_read_bytes(UART_NUM_0, buff, length, 100);
+
+
+    return length;
 }
