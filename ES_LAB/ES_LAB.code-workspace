@@ -11,7 +11,8 @@
 			"sdkconfig.h": "c",
 			"uart.h": "c",
 			"string.h": "c",
-			"rtc_wdt.h": "c"
+			"rtc_wdt.h": "c",
+			"timers.h": "c"
 		}
 	}
 }
