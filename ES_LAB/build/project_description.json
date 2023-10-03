@@ -1,7 +1,7 @@
 {
     "version":            "1",
     "project_name":       "ES_LAB",
-    "project_version":    "b6b1a0c-dirty",
+    "project_version":    "638514d-dirty",
     "project_path":       "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB",
     "idf_path":           "C:/Users/user/esp/esp-idf",
     "build_dir":          "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build",

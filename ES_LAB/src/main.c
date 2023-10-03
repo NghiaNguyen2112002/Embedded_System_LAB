@@ -6,17 +6,9 @@
 #include "sdkconfig.h"
 #include "esp_log.h"
 #include "freertos/queue.h"
+#include "rtc_wdt.h"
 
 #include <string.h>
-
-
-/************************************************
-*               NOTE                            *
-*   multi task access 1 uart tx buffer          *
-*                                               *
-*                                               *
-*************************************************/
-
 
 
 
@@ -49,7 +41,7 @@ static TaskHandle_t MsgReceiver_TaskHandler[NO_RECEIVER];
 
 uint16_t i;
 
-static char uartRxBuff[200];
+// static char uartRxBuff[200];
 static char uartTxBuff[200];
 
 static uint8_t queueTxBuff[100];
@@ -82,6 +74,10 @@ void app_main(void)
 {
     uint16_t i;
 
+    /* Disable watchdog */
+    rtc_wdt_protect_off();
+    rtc_wdt_disable();
+
     UART0_Init();    
 
     for(i = 0; i < NO_RECEIVER; i++){
@@ -113,31 +109,50 @@ void app_main(void)
 
 
 void MsgQueueDistribution(void* param){
-    uint8_t uartLength;
-    uint8_t revId;
+    char rxBuff[200];
+    char processBuff[200];
+    
+    uint8_t rxBuffLength;
+    uint8_t revId = 0;
+
 
     while(1){
-        uartLength = UART0_ReadBytes(&uartRxBuff[0]);
-        if(uartLength > 0){
-            // UART0_WriteBytes(&uartRxBuff[0], uartLength);
+        rxBuffLength = UART0_ReadBytes(&rxBuff[0]);
+        if(rxBuffLength > 0){
+            // UART0_WriteBytes(&rxBuff[0], rxBuffLength);
 
             /*
              *  Process MSG
-             *  Format: [id][msg]
+             *  Received format: [id]:[msg]
+             *  Send format: [msgLength]:[msg]
              */
-            revId = uartRxBuff[0] - '0';
-            if(revId < NO_RECEIVER){
-                if(xQueueSend(msgQueue_QueueHandler[revId], uartRxBuff, 0) != pdTRUE){
-                    UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff,"ERROR: Queue is full!\n"));
+            
+            /* Detect ID */
+            for(i = 0; i < rxBuffLength; i++){
+                processBuff[i] = rxBuff[i];
+                if(rxBuff[i] == ':'){
+                    processBuff[i] = '\0';
+                    revId = atoi(processBuff);
+                    break;
                 }
             }
-            else {
+
+            sprintf(processBuff, "%d%s", (rxBuffLength-i-1), rxBuff + i);
+
+            if(i >= rxBuffLength){
+                UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff,"ERROR: Wrong format!\n"));
+            }
+            else if(revId >= NO_RECEIVER){
                 UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff,"ERROR: Task ID is invalid!\n"));
             }
+            else if(xQueueSend(msgQueue_QueueHandler[revId], processBuff, 0) != pdTRUE){
+                UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff,"ERROR: Queue is full!\n"));
+            }
+
+           
             
-
-
-
+            /* clear buffer */
+            // memset(uartRxBuff, 0, 200 * sizeof(char));
         }
 
         vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -150,14 +165,37 @@ void MsgQueueDistribution(void* param){
 
 void MsgQueueReception_0(void* param){
     char revBuff[100];
+    char processBuff[4];
+
+    uint8_t i;
+    uint8_t revBuffLength = 0;
 
     while(1){
 
         if(xQueueReceive(msgQueue_QueueHandler[0], &(revBuff), (TickType_t)5)){
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "ID 0 Received: %s\n", revBuff));
+
+            /*
+             *  Process MSG
+             *  Received format: [msgLength]:[msg]
+             *  debug send format: [msg]
+             */
+
+            for(i = 0; i < 4; i++){
+                processBuff[i] = revBuff[i];
+
+                if(revBuff[i] == ':'){
+                    processBuff[i] = '\0';
+                    revBuffLength = atoi(processBuff);
+                    break;
+                }
+            }
+
+            revBuff[i + revBuffLength + 1] = '\0';
+
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "ID 0 Received: %s\n", revBuff + i + 1));
 
             /* clear revBuff */
-            memset(revBuff, 0, 100*sizeof(char));
+            // memset(revBuff, 0, 100*sizeof(char));
 
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
@@ -170,12 +208,37 @@ void MsgQueueReception_0(void* param){
 
 void MsgQueueReception_1(void* param){
     char revBuff[100];
+    char processBuff[4];
+
+    uint8_t i;
+    uint8_t revBuffLength = 0;
 
     while(1){
-        if(xQueueReceive(msgQueue_QueueHandler[1], &(revBuff), (TickType_t)5)){
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "ID 1 Received: %s\n", revBuff));
 
-            memset(revBuff, 0, 100*sizeof(char));
+        if(xQueueReceive(msgQueue_QueueHandler[1], &(revBuff), (TickType_t)5)){
+
+            /*
+             *  Process MSG
+             *  Received format: [msgLength]:[msg]
+             *  debug send format: [msg]
+             */
+
+            for(i = 0; i < 4; i++){
+                processBuff[i] = revBuff[i];
+
+                if(revBuff[i] == ':'){
+                    processBuff[i] = '\0';
+                    revBuffLength = atoi(processBuff);
+                    break;
+                }
+            }
+
+            revBuff[i + revBuffLength + 1] = '\0';
+
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "ID 1 Received: %s\n", revBuff + i + 1));
+
+            /* clear revBuff */
+            // memset(revBuff, 0, 100*sizeof(char));
 
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
@@ -187,13 +250,38 @@ void MsgQueueReception_1(void* param){
 }
 
 void MsgQueueReception_2(void* param){
-    char revBuff[100];
+     char revBuff[100];
+    char processBuff[4];
+
+    uint8_t i;
+    uint8_t revBuffLength = 0;
 
     while(1){
-        if(xQueueReceive(msgQueue_QueueHandler[2], &(revBuff), (TickType_t)5)){
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "ID 2 Received: %s\n", revBuff));
 
-            memset(revBuff, 0, 100*sizeof(char));
+        if(xQueueReceive(msgQueue_QueueHandler[2], &(revBuff), (TickType_t)5)){
+
+            /*
+             *  Process MSG
+             *  Received format: [msgLength]:[msg]
+             *  debug send format: [msg]
+             */
+
+            for(i = 0; i < 4; i++){
+                processBuff[i] = revBuff[i];
+
+                if(revBuff[i] == ':'){
+                    processBuff[i] = '\0';
+                    revBuffLength = atoi(processBuff);
+                    break;
+                }
+            }
+
+            revBuff[i + revBuffLength + 1] = '\0';
+
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "ID 2 Received: %s\n", revBuff + i + 1));
+
+            /* clear revBuff */
+            // memset(revBuff, 0, 100*sizeof(char));
 
             vTaskDelay(100 / portTICK_PERIOD_MS);
         }
@@ -242,7 +330,7 @@ void UART0_WriteBytes(char* str, uint16_t length){
 }
 
 uint8_t UART0_ReadBytes(char* buff){
-    uint16_t length;
+    uint8_t length;
 
     ESP_ERROR_CHECK( uart_get_buffered_data_len(UART_NUM_0, (size_t*)&length) );
 
@@ -251,8 +339,5 @@ uint8_t UART0_ReadBytes(char* buff){
     }
 
     length = uart_read_bytes(UART_NUM_0, buff, length, 100);
-
-    
-
     return length;
 }
