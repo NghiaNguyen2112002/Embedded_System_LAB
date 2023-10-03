@@ -26,7 +26,7 @@
 #define UART_PIN_TX                         (1)
 #define UART_PIN_RX                         (3)
 #define UART_BAUDRATE                       (115200)
-#define UART_BUFFER_SIZE                    (2048)
+#define UART_BUFFER_SIZE                    (200)
 
 #define NO_RECEIVER                         (3)
 
@@ -75,8 +75,8 @@ void app_main(void)
     uint16_t i;
 
     /* Disable watchdog */
-    rtc_wdt_protect_off();
-    rtc_wdt_disable();
+    esp_task_w
+    
 
     UART0_Init();    
 
@@ -137,6 +137,8 @@ void MsgQueueDistribution(void* param){
                 }
             }
 
+            rxBuff[rxBuffLength] = '\0';
+            
             sprintf(processBuff, "%d%s", (rxBuffLength-i-1), rxBuff + i);
 
             if(i >= rxBuffLength){
@@ -155,7 +157,7 @@ void MsgQueueDistribution(void* param){
             // memset(uartRxBuff, 0, 200 * sizeof(char));
         }
 
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
 
