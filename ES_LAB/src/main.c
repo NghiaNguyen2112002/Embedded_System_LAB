@@ -11,7 +11,6 @@
 #include <string.h>
 
 
-
 /************************************************
 *               LAB ID DEFINE                   * 
 *************************************************/
@@ -19,6 +18,8 @@
 // #define     LAB3
 // #define     LAB2
 // #define     LAB1
+
+
 
 /************************************************
 *               DEFINE                          * 
@@ -29,6 +30,10 @@
 #define UART_BUFFER_SIZE                    (200)
 
 #define NO_RECEIVER                         (3)
+
+/* Disable watchdog */
+#define CONFIG_ESP_TASK_WDT_INIT 0
+
 
 /************************************************
 *               VARIABLES                       * 
@@ -63,8 +68,7 @@ void MsgQueueReception_0(void* param);
 void MsgQueueReception_1(void* param);
 void MsgQueueReception_2(void* param);
 
-
-
+ 
 
 
 /************************************************
@@ -75,7 +79,7 @@ void app_main(void)
     uint16_t i;
 
     /* Disable watchdog */
-    esp_task_w
+    
     
 
     UART0_Init();    
