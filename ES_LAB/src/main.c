@@ -9,14 +9,29 @@
 #include "rtc_wdt.h"
 #include "freertos/timers.h"
 
+#include "esp_event.h"
+#include "esp_wifi.h"
+#include "esp_err.h"
+#include "nvs_flash.h"
 
 #include <string.h>
 
+/************************************************
+*                   NOTE                        *
+*    This lab has not had requirements yet      *
+*        So i tested the wifi scanner           *
+*           and wifi AP, STA                    *
+*                                               * 
+*************************************************/
+// #define TESTCODE_LAB_WIFI_SCANNER                   
+// #define TESTCODE_LAB_WIFI_STA                   
+// #define TESTCODE_LAB_WIFI_AP                    
 
 /************************************************
 *               LAB ID DEFINE                   * 
 *************************************************/
-#define     LAB5
+#define     LAB6
+// #define     LAB5
 // #define     LAB4
 // #define     LAB3
 // #define     LAB2
@@ -34,16 +49,19 @@
 
 
 /* Disable watchdog */
-#define CONFIG_ESP_TASK_WDT_INIT 0
+#define CONFIG_ESP_TASK_WDT_INIT            0
 
+#define WIFI_NAME                           "MANG DAY KTX H1-518 4G"
+#define WIFI_PASS                           "20202024"
 
 /************************************************
 *               VARIABLES                       * 
 *************************************************/
+uint16_t apNum;
+wifi_ap_record_t apRecord[10];
 
-// static TimerHandle_t onsTimer0_Handler;
-static TimerHandle_t aurTimer0_Handler;
-static TimerHandle_t aurTimer1_Handler;
+char wifiName[20];
+char wifiPass[20];
 
 static QueueHandle_t uartQueue_QueueHandler;
 
@@ -71,7 +89,8 @@ uint8_t UART0_ReadBytes(char* buff);
 /************************************************
 *               CALLBACK FUNCTION DEFINE        * 
 *************************************************/
-void SoftTimerCallback(TimerHandle_t timerID);
+void WifiEventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId, void* eventData);
+
 
 
 /************************************************
@@ -79,26 +98,76 @@ void SoftTimerCallback(TimerHandle_t timerID);
 *************************************************/
 void app_main(void)
 {
+
     uint16_t i;
+    uint16_t msgLength;
+    char msg[20];
+
+    nvs_flash_init();
+
 
     /* Disable watchdog */
-    rtc_wdt_disable();
-    rtc_wdt_protect_off();
+    rtc_wdt_protect_off();    // Turns off the automatic wdt service
+    rtc_wdt_disable();         // Turn it on manually
 
+    /* Init uart for debugging */
     UART0_Init();    
 
-    // onsTimer0_Handler = xTimerCreate("onsTM0", 1000 / portTICK_PERIOD_MS, pdFALSE, (void*)0, SoftTimerCallback);
-    aurTimer0_Handler = xTimerCreate("aurTM0", 500 / portTICK_PERIOD_MS, pdTRUE, (void*)0, SoftTimerCallback);
-    aurTimer1_Handler = xTimerCreate("aurTM1", 1500 / portTICK_PERIOD_MS, pdTRUE, (void*)0, SoftTimerCallback);
-
-    // xTimerStart(onsTimer0_Handler, (TickType_t)0);
-    xTimerStart(aurTimer0_Handler, (TickType_t)0);
-    xTimerStart(aurTimer1_Handler, (TickType_t)0);
+    /* Event handler */
+    ESP_ERROR_CHECK( esp_event_loop_create_default() );
+    esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, WifiEventHandler, NULL);
 
 
+    /* Init Wifi */
+    wifi_init_config_t  wifiInitConfig = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK( esp_wifi_init(&wifiInitConfig) );
+    ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
+    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
+    
+    wifi_config_t wifiConfig = {
+        .sta = {
+            .ssid = WIFI_NAME,
+            .password = WIFI_PASS,
+            .bssid_set = 0
+        }
+    };
+
+    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &wifiConfig) );
+    ESP_ERROR_CHECK( esp_wifi_start() );
+
+
+
+    esp_wifi_scan_start(NULL, 1);
+
+
+    #ifdef TESTCODE_LAB_WIFI_SCANNER
+        UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi Scanner!\nWifi found: %d\n", apNum));
+
+        /* Scan wifi */
+        esp_wifi_scan_start(NULL, 1);
+
+        esp_wifi_scan_get_ap_num(&apNum);
+        esp_wifi_scan_get_ap_records(&apNum, apRecord);
+        
+    #endif // TESTCODE_LAB_WIFI_SCANNER
+
+    #ifdef TESTCODE_LAB_WIFI_STA
+        UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi STA!\n"));
+    #endif // TESTCODE_LAB_WIFI_STA
+    
+    i = 0;
     while(1){
+        
+        // if((i < apNum) && (i < 10)){
+        //     UART0_WriteBytes( uartTxBuff, sprintf(uartTxBuff, "%d. %d | %d | %s\n", 
+        //                                 i, apRecord[i].primary, apRecord[i].rssi, apRecord[i].ssid));
+        //     i++;
+        // }
 
+        // vTaskDelay(100);
     }
+
+    
     
     
     esp_restart();
@@ -107,35 +176,79 @@ void app_main(void)
 
 
 
-void SoftTimerCallback(TimerHandle_t xTimer){
-    uint8_t dmy;
 
 
-    /* Increase timerID until it reach the number of desired expired times */
-    dmy = pvTimerGetTimerID(xTimer);
-    vTimerSetTimerID(xTimer, dmy + 1);
 
-    if(xTimer == aurTimer0_Handler){
-        if(dmy < 10){
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "%d.Auto Reload timer 0 triggered!\n", dmy));
-        }
-        else {
-            xTimerStop(xTimer, (TickType_t)0);
-        }
-    }
-    else if(xTimer == aurTimer1_Handler){
-        if(dmy < 5){
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "%d.Auto Reload timer 1 triggered!\n", dmy));
-        }
-        else {
-            xTimerStop(xTimer, (TickType_t)0);
-        }
+void WifiEventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId, void* eventData){
+    uint16_t i;
+    uint8_t msgLength;
+    char msg[30];
+
+    if(eventBase != WIFI_EVENT){
+        return;
     }
 
+    
+    switch(eventId){
+        case WIFI_EVENT_STA_START:
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi STA!\nEnter Wifi name:\n"));
+
+            // msgLength = 0;
+            // while(msgLength == 0){
+            //     msgLength = UART0_ReadBytes(msg);
+            // }
+
+            // for(i = 0; i < msgLength; i++){
+            //     wifiName[i] = msg[i];
+            // }
+            // wifiName[msgLength] = '\0';
+
+            // UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Enter Wifi password:\n"));
+
+            // msgLength = 0;
+            // while(msgLength == 0){
+            //     msgLength = UART0_ReadBytes(msg);
+            // }
+
+            // for(i = 0; i < msgLength; i++){
+            //     wifiPass[i] = msg[i];
+            // }
+            // wifiPass[msgLength] = '\0';
+
+        break;
+        case WIFI_EVENT_AP_START:
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi AP!\n"));
+
+        break;
+        case WIFI_EVENT_SCAN_DONE:
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi Scanner!\n"));
+           
+            esp_wifi_scan_get_ap_num(&apNum);
+            esp_wifi_scan_get_ap_records(&apNum, apRecord);
+                
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Wifi found: %d\n", apNum));
+
+            i = 0;
+            while((i < apNum) && (i < 10)){
+                UART0_WriteBytes( uartTxBuff, sprintf(uartTxBuff, "%d. %d | %d | %s\n", 
+                                            i, apRecord[i].primary, apRecord[i].rssi, apRecord[i].ssid));
+                i++;
+
+                vTaskDelay(100);
+            }
+        break;
+        case WIFI_EVENT_STA_CONNECTED:
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Wifi connected!\n"));
+        break;
+        case WIFI_EVENT_STA_DISCONNECTED:
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Wifi disconnected!\n"));
+
+        break;
+    }
+    
 
 
 }
-
 
 
 
