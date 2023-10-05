@@ -5,6 +5,10 @@
 #include "driver/gpio.h"
 #include "sdkconfig.h"
 #include "esp_log.h"
+#include "freertos/queue.h"
+#include "rtc_wdt.h"
+#include "freertos/timers.h"
+
 
 /************************************************
 *               LAB ID DEFINE                   * 
@@ -12,18 +16,44 @@
 #define     LAB2
 // #define     LAB1
 
+
 /************************************************
-*               VARIABLES DEFINE                * 
+*               DEFINE                          * 
+*************************************************/
+#define UART_PIN_TX                         (1)
+#define UART_PIN_RX                         (3)
+#define UART_BAUDRATE                       (115200)
+#define UART_BUFFER_SIZE                    (200)
+
+
+/* Disable watchdog */
+#define CONFIG_ESP_TASK_WDT_INIT 0
+
+
+/************************************************
+*               VARIABLES                       * 
 *************************************************/
 TaskHandle_t PrintStuID_Handler;
 TaskHandle_t BTPolling_Handler;
 
 
+
 /************************************************
-*               FUNCTION DEFINE                 * 
+*              SUB FUNCTION DEFINE              * 
+*************************************************/
+
+
+
+/************************************************
+*               TASK DEFINE                     * 
 *************************************************/
 void PrintStuID(void* param);
 void BTPolling(void* param);
+
+ 
+/************************************************
+*               CALLBACK FUNCTION DEFINE        * 
+*************************************************/
 
 
 
@@ -32,6 +62,10 @@ void BTPolling(void* param);
 *************************************************/
 void app_main(void)
 {
+
+   /* Disable watchdog */
+    rtc_wdt_disable();
+    rtc_wdt_protect_off();
 
     printf("Begin\n");
     
@@ -51,11 +85,15 @@ void app_main(void)
 
 void PrintStuID(void* param){
     uint16_t i = 0;
+    TickType_t lastWakeup;
+
 
     while(1){
+        lastWakeup = xTaskGetTickCount();
+
         printf("%d.Nguyen Trung Nghia 2013875\n", i++);
         // vTaskDelay(1000);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelayUntil(lastWakeup,  1000 / portTICK_PERIOD_MS);
     }
 
     vTaskDelete(NULL);
@@ -76,6 +114,8 @@ void BTPolling(void* param){
 
     while(1){
         while(gpio_get_level(18) != 0);
+        while(gpio_get_level(18) == 0);
+
         printf("%d.ESP32\n", i++);
 
     }
