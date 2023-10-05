@@ -34,7 +34,6 @@
 /* Disable watchdog */
 #define CONFIG_ESP_TASK_WDT_INIT 0
 
-
 /************************************************
 *               VARIABLES                       * 
 *************************************************/
@@ -79,7 +78,9 @@ void app_main(void)
     uint16_t i;
 
     /* Disable watchdog */
-    
+    rtc_wdt_disable();
+    rtc_wdt_protect_off();
+
     
 
     UART0_Init();    
