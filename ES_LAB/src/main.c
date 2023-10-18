@@ -25,6 +25,7 @@
 #define UART_BAUDRATE                       (115200)
 #define UART_BUFFER_SIZE                    (200)
 
+#define PIN_BUTTON                          (18)
 
 /* Disable watchdog */
 #define CONFIG_ESP_TASK_WDT_INIT 0
@@ -93,7 +94,7 @@ void PrintStuID(void* param){
 
         printf("%d.Nguyen Trung Nghia 2013875\n", i++);
         // vTaskDelay(1000);
-        vTaskDelayUntil(lastWakeup,  1000 / portTICK_PERIOD_MS);
+        vTaskDelayUntil(&lastWakeup,  1000 / portTICK_PERIOD_MS);
     }
 
     vTaskDelete(NULL);
@@ -105,7 +106,7 @@ void BTPolling(void* param){
 
     gpio_config_t gpioConfig;
     /* Config BUTTON pin */
-    gpioConfig.pin_bit_mask = (1 << 18);
+    gpioConfig.pin_bit_mask = (1 << PIN_BUTTON);
     gpioConfig.mode = GPIO_MODE_INPUT;
     gpioConfig.pull_up_en = GPIO_PULLUP_ENABLE;
     gpioConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
@@ -113,8 +114,8 @@ void BTPolling(void* param){
     gpio_config(&gpioConfig);
 
     while(1){
-        while(gpio_get_level(18) != 0);
-        while(gpio_get_level(18) == 0);
+        while(gpio_get_level(PIN_BUTTON) != 0);
+        while(gpio_get_level(PIN_BUTTON) == 0);
 
         printf("%d.ESP32\n", i++);
 
