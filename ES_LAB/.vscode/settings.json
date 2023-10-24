@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "sdkconfig.h": "c",
+        "freertosconfig.h": "c"
+    },
+    "idf.adapterTargetName": "esp32"
+}

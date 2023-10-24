@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/CMakeFiles/bootloader"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/CMakeFiles/bootloader.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/CMakeFiles/bootloader-complete.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/bootloader-prefix/src/bootloader-stamp/bootloader-build.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/bootloader-prefix/src/bootloader-stamp/bootloader-configure.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/bootloader-prefix/src/bootloader-stamp/bootloader-download.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/bootloader-prefix/src/bootloader-stamp/bootloader-install.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/bootloader-prefix/src/bootloader-stamp/bootloader-mkdir.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/bootloader-prefix/src/bootloader-stamp/bootloader-patch.rule"
+		},
+		{
+			"file" : "E:/University/Embedded_System/Code/LAB_Source_Code/ES_LAB/build/bootloader-prefix/src/bootloader-stamp/bootloader-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"bootloader"
+		],
+		"name" : "bootloader"
+	}
+}
