@@ -23,9 +23,7 @@
 *           and wifi AP, STA                    *
 *                                               * 
 *************************************************/
-// #define TESTCODE_LAB_WIFI_SCANNER                   
-// #define TESTCODE_LAB_WIFI_STA                   
-// #define TESTCODE_LAB_WIFI_AP                    
+               
 
 /************************************************
 *               LAB ID DEFINE                   * 
@@ -50,9 +48,16 @@
 
 /* Disable watchdog */
 #define CONFIG_ESP_TASK_WDT_INIT            0
+#define CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0        (0)
+#define CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1        (0)
 
-#define WIFI_NAME                           "MANG DAY KTX H1-518 4G"
-#define WIFI_PASS                           "20202024"
+
+
+#define STA_NAME                           "MANGDAY KTX H1-518 4G"
+#define STA_PASS                           "20202024"
+
+#define AP_NAME                             "Test AP ESP32"
+#define AP_PASS                             "123456789"
 
 /************************************************
 *               VARIABLES                       * 
@@ -67,7 +72,7 @@ static QueueHandle_t uartQueue_QueueHandler;
 
 
 // static char uartRxBuff[200];
-static char uartTxBuff[200];
+static char uartTxBuff[100];
 
 static uint8_t queueTxBuff[100];
 
@@ -122,39 +127,41 @@ void app_main(void)
     wifi_init_config_t  wifiInitConfig = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK( esp_wifi_init(&wifiInitConfig) );
     ESP_ERROR_CHECK( esp_wifi_set_storage(WIFI_STORAGE_RAM) );
-    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_STA) );
+    ESP_ERROR_CHECK( esp_wifi_set_mode(WIFI_MODE_APSTA) );
     
-    wifi_config_t wifiConfig = {
+    wifi_config_t wifiConfigSta = {
         .sta = {
-            .ssid = WIFI_NAME,
-            .password = WIFI_PASS,
+            .ssid = STA_NAME,
+            .password = STA_PASS,
             .bssid_set = 0
+        },
+    };
+
+    wifi_config_t wifiConfigAp = {
+        .ap = {
+            .ssid = AP_NAME,
+            .password = AP_PASS,
+            .ssid_len = 0,
+            .channel = 1,
+            .authmode = WIFI_AUTH_OPEN,
+            .ssid_hidden = 0,
+            .max_connection = 4,
+            .beacon_interval = 100
         }
     };
 
-    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &wifiConfig) );
+    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &wifiConfigSta) );
+    ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_AP, &wifiConfigAp) );
+
     ESP_ERROR_CHECK( esp_wifi_start() );
 
-
-
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
     esp_wifi_scan_start(NULL, 1);
 
+    vTaskDelay(10000 / portTICK_PERIOD_MS);
+    esp_wifi_connect();
 
-    #ifdef TESTCODE_LAB_WIFI_SCANNER
-        UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi Scanner!\nWifi found: %d\n", apNum));
 
-        /* Scan wifi */
-        esp_wifi_scan_start(NULL, 1);
-
-        esp_wifi_scan_get_ap_num(&apNum);
-        esp_wifi_scan_get_ap_records(&apNum, apRecord);
-        
-    #endif // TESTCODE_LAB_WIFI_SCANNER
-
-    #ifdef TESTCODE_LAB_WIFI_STA
-        UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi STA!\n"));
-    #endif // TESTCODE_LAB_WIFI_STA
-    
     i = 0;
     while(1){
         
@@ -181,8 +188,7 @@ void app_main(void)
 
 void WifiEventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId, void* eventData){
     uint16_t i;
-    uint8_t msgLength;
-    char msg[30];
+
 
     if(eventBase != WIFI_EVENT){
         return;
@@ -191,37 +197,15 @@ void WifiEventHandler(void* arg, esp_event_base_t eventBase, int32_t eventId, vo
     
     switch(eventId){
         case WIFI_EVENT_STA_START:
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi STA!\nEnter Wifi name:\n"));
-
-            // msgLength = 0;
-            // while(msgLength == 0){
-            //     msgLength = UART0_ReadBytes(msg);
-            // }
-
-            // for(i = 0; i < msgLength; i++){
-            //     wifiName[i] = msg[i];
-            // }
-            // wifiName[msgLength] = '\0';
-
-            // UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Enter Wifi password:\n"));
-
-            // msgLength = 0;
-            // while(msgLength == 0){
-            //     msgLength = UART0_ReadBytes(msg);
-            // }
-
-            // for(i = 0; i < msgLength; i++){
-            //     wifiPass[i] = msg[i];
-            // }
-            // wifiPass[msgLength] = '\0';
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Wifi STA Started!\n"));
 
         break;
         case WIFI_EVENT_AP_START:
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi AP!\n"));
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Wifi AP Started!\n"));
 
         break;
         case WIFI_EVENT_SCAN_DONE:
-            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Test Wifi Scanner!\n"));
+            UART0_WriteBytes(uartTxBuff, sprintf(uartTxBuff, "Wifi Scanner Started!\n"));
            
             esp_wifi_scan_get_ap_num(&apNum);
             esp_wifi_scan_get_ap_records(&apNum, apRecord);
