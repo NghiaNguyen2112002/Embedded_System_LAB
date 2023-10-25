@@ -33,6 +33,8 @@
 
 /* Disable watchdog */
 #define CONFIG_ESP_TASK_WDT_INIT 0
+#define CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0 0
+#define CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1 0
 
 /************************************************
 *               VARIABLES                       * 
