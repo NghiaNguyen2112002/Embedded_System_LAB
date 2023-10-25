@@ -5,6 +5,7 @@
         "board/esp32-bridge.cfg"
     ],
     "files.associations": {
-        "sdkconfig.h": "c"
+        "sdkconfig.h": "c",
+        "freertosconfig.h": "c"
     }
 }
